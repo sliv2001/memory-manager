@@ -45,13 +45,18 @@ The following constraints must be met when implementing the project:
 ### 3.1 Functions
 1.	The product should implement the `n_alloc` function, which allocates a block of memory of a given size or generates an error if the allocation is not possible.
 2.	The product should implement `n_read` function which performs reading of a specified number of bytes at a given address; also, there should be implemented `n_write` function which similarly performs reading.
-3.	The product should implement the function `n_free`, which frees the required block of memory if it has been allocated.
+3.	The product should implement the function `n_free`, which frees the required block of memory if it has been allocated. Memory leakage should be controlled as well.
 4.	The product should have error handling: all product functions are of int type and output 0 if the operation is successful, or an error code otherwise.
 5.	Error handling includes the following defects: 
     1. Dereferencing and comparison of invalid references
     2. Read/write outside the object boundaries
+5. Data is stored in buffer which is allocated in big portions: minimum buffer size equals 256K. If allocation of this portion is impossible, minimum size is reduced.
+6. The product should initialize itself at first allocation in order to set up its data buffer
 	
 ### 3.2 Non-Functional requirements
 1. The product must be usable on any external system which supports dynamic memory access and has an implementation of the libc library.
 2.	The product must be implemented as a set of C source and header files.
+3. The product should work, while external project is in debug mode only, while in release mode it must provide interface to memory as fast as possible.
+3. The product should be highly similar to usual memory interface provided by libc and system.
 3.	Each block of memory allocated by the `n_alloc` function must consist of a header that contains the length of the allocated block minus the length of the header and the block available for write/read.
+4. Sustem memory manager function `malloc` is used as rarely as possible to provide faster MM usage

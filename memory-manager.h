@@ -65,8 +65,10 @@ MEM_MNG_ERROR n_free_all();
  * @brief Replacement for usual exit() with mem leakage checks
  *
  */
+#ifdef DEBUG
 #define exit(x) {\
 	n_free_all();\
 	exit(x);}
+#endif
 
 #endif /* MEMORY_MANAGER_H_ */

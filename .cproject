@@ -23,11 +23,15 @@
 								<option id="llvm.c_cpp.compiler.option.optimization.level.1379976126" name="Optimization Level" superClass="llvm.c_cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="llvm.c_cpp.compiler.option.debugging.level.78183354" name="Debug Level" superClass="llvm.c_cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="llvm.c_cpp.compiler.option.misc.other.1900857888" name="Other flags" superClass="llvm.c_cpp.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0" valueType="string"/>
+								<option id="llvm.c_cpp.compiler.option.debugging.other.722280378" superClass="llvm.c_cpp.compiler.option.debugging.other" useByScannerDiscovery="false" value="-DDEBUG" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.llvm.c.compiler.input.431097869" superClass="cdt.managedbuild.tool.llvm.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.compiler.exe.debug.77860453" name="LLVM Clang++" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.compiler.exe.debug">
 								<option id="llvm.c_cpp.compiler.option.optimization.level.1224621326" name="Optimization Level" superClass="llvm.c_cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="llvm.c_cpp.compiler.option.debugging.level.966538031" name="Debug Level" superClass="llvm.c_cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.debugging.level.max" valueType="enumerated"/>
+								<option id="cdt.managedbuild.tool.llvm.cpp.compiler.option.dialect.std.1757604259" name="Language standard" superClass="cdt.managedbuild.tool.llvm.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<option id="llvm.c_cpp.compiler.option.debugging.other.1096564651" name="Other debugging flags" superClass="llvm.c_cpp.compiler.option.debugging.other" useByScannerDiscovery="false" value="" valueType="string"/>
+								<inputType id="cdt.managedbuild.tool.llvm.cpp.compiler.input.834637785" superClass="cdt.managedbuild.tool.llvm.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.c.linker.exe.debug.1246407376" name="LLVM Clang C linker" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.c.linker.exe.debug">
 								<option defaultValue="false" id="llvm.c.link.option.nativeCBackEnd.737753075" name="Create native binary (with C backend code generator)" superClass="llvm.c.link.option.nativeCBackEnd" valueType="boolean"/>
@@ -39,6 +43,10 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.linker.exe.debug.951485206" name="LLVM Clang C++ linker" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.linker.exe.debug">
 								<option defaultValue="false" id="llvm.c.link.option.nativeCBackEnd.702510170" name="Create native binary (with C backend code generator)" superClass="llvm.c.link.option.nativeCBackEnd" valueType="boolean"/>
+								<inputType id="cdt.managedbuild.tool.llvm.c.linker.input.1279576325" superClass="cdt.managedbuild.tool.llvm.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -72,6 +80,7 @@
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.compiler.exe.release.1808684590" name="LLVM Clang++" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.compiler.exe.release">
 								<option id="llvm.c_cpp.compiler.option.optimization.level.216470241" name="Optimization Level" superClass="llvm.c_cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="llvm.c_cpp.compiler.option.debugging.level.707462230" name="Debug Level" superClass="llvm.c_cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="llvm.c_cpp.compiler.debugging.level.none" valueType="enumerated"/>
+								<inputType id="cdt.managedbuild.tool.llvm.cpp.compiler.input.738385580" superClass="cdt.managedbuild.tool.llvm.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.c.linker.exe.release.1342607353" name="LLVM Clang C linker" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.c.linker.exe.release">
 								<option defaultValue="false" id="llvm.c.link.option.nativeCBackEnd.1478503112" name="Create native binary (with C backend code generator)" superClass="llvm.c.link.option.nativeCBackEnd" valueType="boolean"/>
@@ -82,6 +91,10 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.linker.exe.release.240235368" name="LLVM Clang C++ linker" superClass="cdt.managedbuild.tool.llvm.clang.win32.cygwin.cpp.linker.exe.release">
 								<option defaultValue="false" id="llvm.c.link.option.nativeCBackEnd.624168094" name="Create native binary (with C backend code generator)" superClass="llvm.c.link.option.nativeCBackEnd" valueType="boolean"/>
+								<inputType id="cdt.managedbuild.tool.llvm.c.linker.input.1236892732" superClass="cdt.managedbuild.tool.llvm.c.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
 							</tool>
 						</toolChain>
 					</folderInfo>

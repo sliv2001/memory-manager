@@ -1,4 +1,5 @@
-#include <stdlib.h>
+#ifdef DEBUG
+
 #include <stdio.h>
 #include <memory.h>
 #include <string.h>
@@ -6,6 +7,8 @@
 #ifndef _HAS_MEMMEM
 #include "memmem.h"
 #endif
+
+#include <stdlib.h>
 #include "memory-manager.h"
 
 #define MEM_MNG_PREAMBLE	0xDEADBEEFBAADBEEF
@@ -174,13 +177,13 @@ static MEM_MNG_ERROR recursive_free_all(buffer_header* buffer){
 	if (buffer->next_buffer_start_ptr!=NULL)
 		recursive_free_all(buffer->next_buffer_start_ptr);
 	void* res;
-	int64_t preamble;
+	int64_t preamble=MEM_MNG_PREAMBLE;
 	res=memmem(buffer, buffer->this_buffer_size, &preamble, sizeof(preamble));
 	while (res!=NULL){
-		res=memmem(res, buffer->this_buffer_size-((uint8_t*)res-(uint8_t*)buffer), &preamble, sizeof(preamble));
+		printf("Some data leakage at address %llx\n", (uint64_t)res+sizeof(block_header));
+		int further_length=buffer->this_buffer_size-((uint8_t*)res-(uint8_t*)buffer);
+		res=memmem((uint8_t*)res+sizeof(preamble), further_length, &preamble, sizeof(preamble));
 		/*If you found first mem leakage you still want to test for others */
-		if (res!=NULL)
-			printf("Some data leakage at address %llx\n", (uint64_t)res+sizeof(block_header));
 	}
 	free(buffer);
 	return MEM_MNG_ERROR_OK;
@@ -189,3 +192,28 @@ static MEM_MNG_ERROR recursive_free_all(buffer_header* buffer){
 MEM_MNG_ERROR n_free_all(){
 	return recursive_free_all(start_buffer);
 }
+
+#else
+
+#include <stdlib.h>
+#include "memory-manager.h"
+
+MEM_MNG_ERROR n_alloc(void** dataPtr, uint32_t size){
+	*dataPtr = malloc(size);
+	return MEM_MNG_ERROR_OK;
+}
+
+void* n_access_ptr(void* object, void* accessed_data){
+	return accessed_data;
+}
+
+MEM_MNG_ERROR n_free(void* data){
+	free(data);
+	return MEM_MNG_ERROR_OK;
+}
+
+MEM_MNG_ERROR n_free_all(){
+	return MEM_MNG_ERROR_OK;
+}
+
+#endif

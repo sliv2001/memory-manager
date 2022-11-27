@@ -2,7 +2,15 @@ cmake_minimum_required(VERSION 3.25)
 
 project(memory-manager)
 
-add_executable(mm_test memory-manager.c test.c)
+add_executable(mm_test memory-manager.c memmem.c test.c)
+
+include(CheckFunctionExists)
+check_function_exists(memmem HAVE_MEMMEM_FUNCTION)
+if (HAVE_MEMMEM_FUNCTION)
+	target_compile_definitions(mm_test PRIVATE _HAS_MEMMEM)
+endif()
+
+target_compile_definitions(mm_test PRIVATE $<$<CONFIG:Debug>:DEBUG>)
 
 enable_testing()
 

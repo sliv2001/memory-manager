@@ -14,7 +14,9 @@ enum MEM_MNG_ERROR {
 	MEM_MNG_ERROR_OUT_OF_RANGE,         /**< MEM_MNG_ERROR_OUT_OF_RANGE reading or writing is out of memory range */
 	MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED,  /**< MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED block was not allocated so it can not be used */
 	MEM_MNG_ERROR_IS_NULL,              /**< MEM_MNG_ERROR_IS_NULL provided pointer is NULL*/
-	MEM_MNG_ERROR_ZERO_MEM_ALLOCATED    /**< MEM_MNG_ERROR_ZERO_MEM_ALLOCATED you provide size of allocated block equal 0 */
+	MEM_MNG_ERROR_ZERO_MEM_ALLOCATED,   /**< MEM_MNG_ERROR_ZERO_MEM_ALLOCATED you provide size of allocated block equal 0 */
+	MEM_MNG_ERROR_INTERNAL_ALLOCATION_ERROR, /**< MEM_MNG_ERROR_INTERNAL_ALLOCATION_ERROR MM could not get memory by calling malloc */
+	MEM_MNG_OTHER_INTERNAL_ERROR /**< MEM_MNG_OTHER_INTERNAL_ERROR something happened */
 };
 typedef enum MEM_MNG_ERROR MEM_MNG_ERROR;
 
@@ -29,28 +31,13 @@ typedef enum MEM_MNG_ERROR MEM_MNG_ERROR;
 MEM_MNG_ERROR n_alloc(void** dataPtr, uint32_t size);
 
 /**
- * @fn MEM_MNG_ERROR n_read(void*, void*, uint32_t)
- * @brief Function performs reading of a specified number of bytes at a given address
+ * @fn void n_access_ptr*(void*, void*)
+ * @brief Function performs access to an object if it's valid
  *
- * @param data Address in memory where reading is performed from
- * @param buffer Address of buffer, which is filled with data read. buffer is supposed to be on stack
- * @param startPoint Specifies which offset should be taken
- * @param size how many bytes to copy
- * @return Error code
+ * @param object
+ * @param accessed_data
  */
-MEM_MNG_ERROR n_read(void* data, void* buffer, uint32_t startPoint, uint32_t size);
-
-/**
- * @fn MEM_MNG_ERROR n_write(void*, void*, uint32_t)
- * @brief Function performs writing of a specified number of bytes at a given address
- *
- * @param data Address in memory where writing is performed to
- * @param buffer Address of buffer, which is filled with data read
- * @param startPoint Specifies which offset should be taken
- * @param size how many bytes to copy
- * @return Error code
- */
-MEM_MNG_ERROR n_write(void* data, const void* buffer, uint32_t startPoint, uint32_t size);
+void* n_access_ptr(void* object, void* accessed_data);
 
 /**
  * @fn MEM_MNG_ERROR n_free(void*)
@@ -62,5 +49,24 @@ MEM_MNG_ERROR n_write(void* data, const void* buffer, uint32_t startPoint, uint3
  * @warning If you try to free custom pointer, not by MM, then SegFault is guaranteed
  */
 MEM_MNG_ERROR n_free(void* data);
+
+/**
+ * @fn MEM_MNG_ERROR n_free_all()
+ * @brief Memory freeing with leakage check
+ *
+ * @warning Do not call this function. It's called automatically.
+ *
+ * @return Error code
+ */
+MEM_MNG_ERROR n_free_all();
+
+/**
+ * @def exit
+ * @brief Replacement for usual exit() with mem leakage checks
+ *
+ */
+#define exit(x) {\
+	n_free_all();\
+	exit(x);}
 
 #endif /* MEMORY_MANAGER_H_ */

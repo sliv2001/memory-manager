@@ -23,7 +23,7 @@ The main goal of this product is to implement a memory access interface that is 
 ## 2. Overall description
 
 ### 2.1 Product perspective
-This memory manager can only be used as a component of a larger software product, providing memory access, for which it provides an interface of `n_allocate`, `n_free`, `n_read`, `n_write` functions.
+This memory manager can only be used as a component of a larger software product, providing memory access, for which it provides an interface of `n_allocate`, `n_access_ptr` functions.
 
 MM access to memory is provided by the C language functions `malloc`, `calloc`, `free`.
 The list of supported devices includes all devices where dynamic memory accesses are implemented with the help of `malloc` and `free` functions. Besides, devices must have libc library implementation, which is used by current MM. 
@@ -44,7 +44,7 @@ The following constraints must be met when implementing the project:
 
 ### 3.1 Functions
 1.	The product should implement the `n_alloc` function, which allocates a block of memory of a given size or generates an error if the allocation is not possible.
-2.	The product should implement `n_read` function which performs reading of a specified number of bytes at a given address; also, there should be implemented `n_write` function which similarly performs reading.
+2.	The product should implement `n_access_ptr` function which performs checks, whether requested pointer is appropriate.
 3.	The product should implement the function `n_free`, which frees the required block of memory if it has been allocated. Memory leakage should be controlled as well.
 4.	The product should have error handling: all product functions are of int type and output 0 if the operation is successful, or an error code otherwise.
 5.	Error handling includes the following defects: 
@@ -52,6 +52,7 @@ The following constraints must be met when implementing the project:
     2. Read/write outside the object boundaries
 5. Data is stored in buffer which is allocated in big portions: minimum buffer size equals 256K. If allocation of this portion is impossible, minimum size is reduced.
 6. The product should initialize itself at first allocation in order to set up its data buffer
+7. If freed memory is about to be allocated again, MM should reuse freed pointer if possible
 	
 ### 3.2 Non-Functional requirements
 1. The product must be usable on any external system which supports dynamic memory access and has an implementation of the libc library.

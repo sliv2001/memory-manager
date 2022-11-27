@@ -1,16 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "memory-manager.h"
 
-int main(){
+int main(int argc, char** argv){
 
 	int* arr;
 	int bb=10;
 	n_alloc((void**)&arr, 10*sizeof(int));
-	n_write(arr, &bb, 0, sizeof(bb));
+	*(int*)(n_access_ptr(arr, arr))=bb;
 	bb=0;
-	n_read(arr, &bb, 0, sizeof(bb));
+	bb=*(int*)(n_access_ptr(arr, arr));
 	printf("%d", bb);
 	n_free(arr);
 
-	return 0;
+	exit(0);
 }

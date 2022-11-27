@@ -1,8 +1,15 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <memory.h>
+#include <string.h>
+#include <stdbool.h>
+#ifndef _HAS_MEMMEM
+#include "memmem.h"
+#endif
 #include "memory-manager.h"
 
-#define MEM_MNG_PREAMBLE 0xDEADBEEFBAADBEEF
+#define MEM_MNG_PREAMBLE	0xDEADBEEFBAADBEEF
+#define DEFAULT_BUFFER_SIZE	(1<<18)
 
 #pragma pack(push)
 #pragma pack(1)
@@ -13,62 +20,172 @@ struct block_header{
 };
 typedef struct block_header block_header;
 
+struct buffer_header{
+	void* next_buffer_start_ptr;
+	void* this_buffer_data_end_ptr;
+	int this_buffer_size; /*<- Pure size, without this header*/
+	int size_remain;
+};
+typedef struct buffer_header buffer_header;
+
 #pragma pack(pop)
+
+static buffer_header* start_buffer=NULL;
+static void* prev_array[10]; /*<- Raw pointers. They point at bh, not data*/
+static MEM_MNG_ERROR n_access_status;
+
+MEM_MNG_ERROR n_errno(){
+	return n_access_status;
+}
+
+static void prev_init(){
+	memset(&prev_array, 0, sizeof(prev_array));
+}
+
+static MEM_MNG_ERROR prev_allocation(void** dataPtr, uint32_t size){
+	if (0==(size-1&size)){ /*power of 2*/
+		uint32_t s=size, i;
+		for (i=0; i<10; i++){
+			s=s>>1;
+			if (0==s)
+				break;
+		}
+		if (i<10){
+			void *res=prev_array[i];
+			prev_array[i]=NULL;
+			block_header *bh = (block_header*)res;
+			bh->preamble=MEM_MNG_PREAMBLE;
+			bh->size=size;
+			*dataPtr = (void*)(bh+1);
+			return MEM_MNG_ERROR_OK;
+		}
+	}
+	return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
+}
+
+static MEM_MNG_ERROR prev_freeing(void* data){
+	block_header *bh = ((block_header*)data)-1;
+	int size=bh->size;
+	if (0==(size-1&size)){ /*power of 2*/
+		uint32_t s=size, i;
+		for (i=0; i<10; i++){
+			s=s>>1;
+			if (0==s)
+				break;
+		}
+		if (i<10){
+			if (NULL!=prev_array[i])
+				return MEM_MNG_OTHER_INTERNAL_ERROR;
+			prev_array[i]=bh;
+			return MEM_MNG_ERROR_OK;
+		}
+	}
+	return MEM_MNG_OTHER_INTERNAL_ERROR;
+}
+
+static MEM_MNG_ERROR recursive_alloc(buffer_header* buffer, void** dataPtr, uint32_t size){
+	if (size<buffer->size_remain+sizeof(block_header)){
+		void* res = buffer->this_buffer_data_end_ptr;
+		block_header *bh = (block_header*)res;
+		bh->preamble=MEM_MNG_PREAMBLE;
+		bh->size=size;
+		*dataPtr = (void*)(bh+1);
+		buffer->this_buffer_data_end_ptr=(uint8_t*)buffer->this_buffer_data_end_ptr+size+sizeof(block_header);
+		buffer->size_remain-=size+sizeof(block_header);
+		return MEM_MNG_ERROR_OK;
+	}
+	else{
+		if (NULL==buffer->next_buffer_start_ptr){
+			int s = DEFAULT_BUFFER_SIZE+sizeof(buffer_header);
+			if (size>DEFAULT_BUFFER_SIZE)
+				s=size;
+			if ((buffer->next_buffer_start_ptr=(buffer_header*)malloc(s))==NULL)
+				return MEM_MNG_ERROR_INTERNAL_ALLOCATION_ERROR;
+			buffer_header* next_bh=buffer->next_buffer_start_ptr;
+			next_bh->next_buffer_start_ptr=NULL;
+			next_bh->this_buffer_size=DEFAULT_BUFFER_SIZE;
+			next_bh->this_buffer_data_end_ptr = (uint8_t*)buffer+sizeof(buffer_header);
+			next_bh->size_remain=DEFAULT_BUFFER_SIZE;
+			recursive_alloc(next_bh, dataPtr, size);
+		}
+		else{
+			buffer_header* next_bh=buffer->next_buffer_start_ptr;
+			recursive_alloc(next_bh, dataPtr, size);
+		}
+	}
+	return MEM_MNG_ERROR_OK;
+}
 
 MEM_MNG_ERROR n_alloc(void** dataPtr, uint32_t size){
 
 	if (0==size)
 		return MEM_MNG_ERROR_ZERO_MEM_ALLOCATED;
 
-	void* res = malloc(size+sizeof(block_header));
-	if (NULL==res)
-		return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
-	block_header *bh = (block_header*)res;
-	bh->preamble=MEM_MNG_PREAMBLE;
-	bh->size=size;
-	*dataPtr = (void*)(bh+1);
-	return MEM_MNG_ERROR_OK;
+	if (NULL==start_buffer){
+		int s = DEFAULT_BUFFER_SIZE+sizeof(buffer_header);
+		if ((start_buffer=(buffer_header*)malloc(s))==NULL)
+			return MEM_MNG_ERROR_INTERNAL_ALLOCATION_ERROR;
+		start_buffer->next_buffer_start_ptr=NULL;
+		start_buffer->this_buffer_size=DEFAULT_BUFFER_SIZE;
+		start_buffer->this_buffer_data_end_ptr = (uint8_t*)start_buffer+sizeof(buffer_header);
+		start_buffer->size_remain=DEFAULT_BUFFER_SIZE;
+		prev_init();
+	}
+
+	if (MEM_MNG_ERROR_OK == prev_allocation(dataPtr, size))
+		return MEM_MNG_ERROR_OK;
+
+	return recursive_alloc(start_buffer, dataPtr, size);
 }
 
 MEM_MNG_ERROR n_free(void* data){
-
 	if (NULL==data)
 		return MEM_MNG_ERROR_IS_NULL;
 	block_header *bh = ((block_header*)data)-1;
 	if (MEM_MNG_PREAMBLE!=bh->preamble)
 		return MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED;
 	bh->preamble=0;
-	free(bh);
-	return MEM_MNG_ERROR_OK;
-}
-
-MEM_MNG_ERROR n_read(void* data, void* buffer, uint32_t startPoint, uint32_t size){
-
-	if (NULL==data||NULL==buffer||0==size)
-		return MEM_MNG_ERROR_IS_NULL;
-
-	block_header *bh = ((block_header*)data)-1;
-	if (MEM_MNG_PREAMBLE!=bh->preamble)
-		return MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED;
-	if (startPoint+size>=bh->size)
-		return MEM_MNG_ERROR_OUT_OF_RANGE;
-	memcpy((uint8_t*)buffer, (uint8_t*)data+startPoint, size);
+	prev_freeing(data);
 
 	return MEM_MNG_ERROR_OK;
 }
 
+void* n_access_ptr(void* object, void* accessed_data){
+	if (NULL==object||NULL==accessed_data)
+		n_access_status = MEM_MNG_ERROR_IS_NULL;
 
-MEM_MNG_ERROR n_write(void* data, const void* buffer, uint32_t startPoint, uint32_t size){
+	block_header *bh = ((block_header*)object)-1;
+	if (MEM_MNG_PREAMBLE!=bh->preamble){
+		n_access_status = MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED;
+		return NULL;
+	}
+	if (((uint8_t*)accessed_data-(uint8_t*)object)>=bh->size){
+		n_access_status = MEM_MNG_ERROR_OUT_OF_RANGE;
+		return NULL;
+	}
+	if (((uint8_t*)accessed_data-(uint8_t*)object)<0){
+		n_access_status = MEM_MNG_ERROR_OUT_OF_RANGE;
+		return NULL;
+	}
+	return accessed_data;
+}
 
-	if (NULL==data||NULL==buffer||0==size)
-		return MEM_MNG_ERROR_IS_NULL;
-
-	block_header *bh = ((block_header*)data)-1;
-	if (MEM_MNG_PREAMBLE!=bh->preamble)
-		return MEM_MNG_ERROR_BLOCK_NOT_ALLOCATED;
-	if (startPoint+size>=bh->size)
-		return MEM_MNG_ERROR_OUT_OF_RANGE;
-	memcpy((uint8_t*)data+startPoint, (uint8_t*)buffer, size);
-
+static MEM_MNG_ERROR recursive_free_all(buffer_header* buffer){
+	if (buffer->next_buffer_start_ptr!=NULL)
+		recursive_free_all(buffer->next_buffer_start_ptr);
+	void* res;
+	int64_t preamble;
+	res=memmem(buffer, buffer->this_buffer_size, &preamble, sizeof(preamble));
+	while (res!=NULL){
+		res=memmem(res, buffer->this_buffer_size-((uint8_t*)res-(uint8_t*)buffer), &preamble, sizeof(preamble));
+		/*If you found first mem leakage you still want to test for others */
+		if (res!=NULL)
+			printf("Some data leakage at address %llx\n", (uint64_t)res+sizeof(block_header));
+	}
+	free(buffer);
 	return MEM_MNG_ERROR_OK;
+}
+
+MEM_MNG_ERROR n_free_all(){
+	return recursive_free_all(start_buffer);
 }

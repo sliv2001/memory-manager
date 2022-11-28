@@ -54,6 +54,8 @@ static MEM_MNG_ERROR prev_allocation(void** dataPtr, uint32_t size){
 				break;
 		}
 		if (i<10){
+			if (NULL==prev_array[i])
+				return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
 			void *res=prev_array[i];
 			prev_array[i]=NULL;
 			block_header *bh = (block_header*)res;

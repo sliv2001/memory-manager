@@ -13,6 +13,7 @@
 
 #define MEM_MNG_PREAMBLE	0xDEADBEEFBAADBEEF
 #define DEFAULT_BUFFER_SIZE	(1<<18)
+#define PREV_ARRAY_SIZE		1025
 
 #pragma pack(push)
 #pragma pack(1)
@@ -34,7 +35,7 @@ typedef struct buffer_header buffer_header;
 #pragma pack(pop)
 
 static buffer_header* start_buffer=NULL;
-static void* prev_array[10]; /*<- Raw pointers. They point at bh, not data*/
+static void* prev_array[PREV_ARRAY_SIZE]; /*<- Raw pointers. They point at bh, not data*/
 static MEM_MNG_ERROR n_access_status;
 
 MEM_MNG_ERROR n_errno(){
@@ -46,24 +47,17 @@ static void prev_init(){
 }
 
 static MEM_MNG_ERROR prev_allocation(void** dataPtr, uint32_t size){
-	if (0==(size-1&size)){ /*power of 2*/
-		uint32_t s=size, i;
-		for (i=0; i<10; i++){
-			s=s>>1;
-			if (0==s)
-				break;
-		}
-		if (i<10){
-			if (NULL==prev_array[i])
-				return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
-			void *res=prev_array[i];
-			prev_array[i]=NULL;
-			block_header *bh = (block_header*)res;
-			bh->preamble=MEM_MNG_PREAMBLE;
-			bh->size=size;
-			*dataPtr = (void*)(bh+1);
-			return MEM_MNG_ERROR_OK;
-		}
+
+	if (size<PREV_ARRAY_SIZE){
+		if (NULL==prev_array[size])
+			return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
+		void *res=prev_array[size];
+		prev_array[size]=NULL;
+		block_header *bh = (block_header*)res;
+		bh->preamble=MEM_MNG_PREAMBLE;
+		bh->size=size;
+		*dataPtr = (void*)(bh+1);
+		return MEM_MNG_ERROR_OK;
 	}
 	return MEM_MNG_ERROR_ALLOCATION_IMPOSSIBLE;
 }
@@ -89,7 +83,7 @@ static MEM_MNG_ERROR prev_freeing(void* data){
 }
 
 static MEM_MNG_ERROR recursive_alloc(buffer_header* buffer, void** dataPtr, uint32_t size){
-	if (size<buffer->size_remain+sizeof(block_header)){
+	if (size+sizeof(block_header)<buffer->size_remain){
 		void* res = buffer->this_buffer_data_end_ptr;
 		block_header *bh = (block_header*)res;
 		bh->preamble=MEM_MNG_PREAMBLE;
